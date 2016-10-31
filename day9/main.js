@@ -16,40 +16,28 @@ function parse_edges(lines) {
 }
 
 function all_routes(edges) {
-  return [...permutations(Object.keys(edges))];
-
   function* permutations(arr) {
     if (arr.length === 0) {
       yield {path: [], length: 0};
-    } else if (arr.length === 1) {
-      yield {path: [arr[0]], length: 0};
     } else {
-      for (let partial of permutations(arr.slice(1))) {
-        yield {
-          path: [arr[0], ...partial.path],
-          length: partial.length + edges[arr[0]][partial.path[0]],
-        };
+      for (let {path, length} of permutations(arr.slice(1))) {
+        let old_inner = (i) => (0 < i && i < path.length) ? edges[path[i-1]][path[i]] : 0;
+        let new_left  = (i) => (0 < i                   ) ? edges[path[i-1]][arr[0]]  : 0;
+        let new_right = (i) => (         i < path.length) ? edges[arr[0]][path[i]]    : 0;
 
-        for (let i = 1; i < partial.path.length-1; ++i) {
+        for (let i = 0; i <= path.length; ++i) {
           yield {
-            path: [...partial.path.slice(0, i), arr[0], ...partial.path.slice(i)],
-            length:
-              ( partial.length
-              - edges[partial.path[i-1]][partial.path[i]]
-              + edges[partial.path[i-1]][arr[0]]
-              + edges[arr[0]][partial.path[i]]
-              ),
+            path: [...path.slice(0, i), arr[0], ...path.slice(i)],
+            length: (length - old_inner(i) + new_left(i) + new_right(i)),
           };
         }
-
-        yield {
-          path: [...partial.path, arr[0]],
-          length: partial.length + edges[arr[0]][partial.path[partial.path.length-1]],
-        };
       }
     }
   }
+
+  return [...permutations(Object.keys(edges))];
 }
+
 
 const lines = File.readFileSync("input.txt", "utf-8").trim().split("\n")
 const edges = parse_edges(lines);
