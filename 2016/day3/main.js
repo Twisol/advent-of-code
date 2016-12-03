@@ -1,11 +1,7 @@
 const File = require("fs");
 
-function is_possible(tri) {
-  return (
-       (tri[0] + tri[1] > tri[2])
-    && (tri[1] + tri[2] > tri[0])
-    && (tri[2] + tri[0] > tri[1])
-  );
+function is_possible([a, b, c]) {
+  return (a + b > c && b + c > a && c + a > b);
 }
 
 function transpose(tris) {
@@ -15,6 +11,7 @@ function transpose(tris) {
       transposed.push([tris[i+0][j], tris[i+1][j], tris[i+2][j]])
     }
   }
+
   return transposed;
 }
 
