@@ -9,7 +9,7 @@ function any(list, predicate) {
 
 
 function parts_of(line) {
-  const splits = line.split(/\[|\]/)
+  const splits = line.split(/\[|\]/);
 
   const parts = {good: [], bad: []};
   for (let i = 0; i < splits.length; i += 1) {
