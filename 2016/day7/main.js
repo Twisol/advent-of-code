@@ -9,27 +9,12 @@ function any(list, predicate) {
 
 
 function parts_of(line) {
+  const splits = line.split(/\[|\]/)
+
   const parts = {good: [], bad: []};
-
-  let last_bracket = -1;
-  while (true) {
-    const start_bracket = line.indexOf("[", last_bracket);
-    const end_bracket = line.indexOf("]", start_bracket);
-    if (start_bracket === -1) break;
-
-    if (last_bracket+1 < start_bracket) {
-      parts.good.push(line.substring(last_bracket+1, start_bracket));
-    }
-
-    if (start_bracket+1 < end_bracket) {
-      parts.bad.push(line.substring(start_bracket+1, end_bracket));
-    }
-
-    last_bracket = end_bracket;
-  }
-
-  if (last_bracket+1 < line.length) {
-    parts.good.push(line.substring(last_bracket+1));
+  for (let i = 0; i < splits.length; i += 1) {
+    if (i % 2 == 0) parts.good.push(splits[i]);
+    else            parts.bad.push(splits[i]);
   }
 
   return parts;
