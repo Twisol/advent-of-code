@@ -1,0 +1,7 @@
+depend:
+include: .
+flags:
+  --without-K
+  --exact-split
+  --no-import-sorts
+  --no-qualified-instances
