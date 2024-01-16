@@ -4,7 +4,7 @@ module AOC.Lib.Showable where
   open import AOC.Lib.Functions
     using (Fun-composable)
   open import AOC.Lib.Composable
-    using (_∘_)
+    using (_∘_; _;_)
   open import AOC.Lib.Unit
     using (⊤; by)
   open import AOC.Lib.Natural
@@ -13,6 +13,10 @@ module AOC.Lib.Showable where
     using (ℤ)
   open import AOC.Lib.String
     using (String; Packed; toPacked; fromPacked; String-isString)
+  open import AOC.Lib.Product
+    using (_×_; _,_)
+  open import AOC.Lib.List
+    using (List-composable)
 
   record Showable (A : Type) : Type where
     field show : A → String
@@ -46,3 +50,7 @@ module AOC.Lib.Showable where
     String-showable = showable by
       show: show ∘ toPacked
 
+  instance
+    ×-showable : {A B : Type} {{_ : Showable A}} {{_ : Showable B}} → Showable (A × B)
+    ×-showable = showable by
+      show: λ(a , b) → "(" ; show a ; ", " ; show b ; ")"

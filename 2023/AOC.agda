@@ -1,7 +1,6 @@
 module AOC where
   import AOC.Lib.Bool
   import AOC.Lib.Composable
-  import AOC.Lib.Conditional
   import AOC.Lib.Decidable
   import AOC.Lib.Equality
   import AOC.Lib.Functions

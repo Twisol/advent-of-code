@@ -19,13 +19,12 @@ module AOC.Lib.String where
     as Eq
     using (_≡_)
 
-  open import AOC.Lib.Conditional
-    using (if_then_else_)
   open import AOC.Lib.Decidable
     as Dec
-    using (_is_??)
+    using (if_then_else_; decidable₀_decide:_; ≡-decidable₀)
+    using (_is_)
     using (DecidableEquality; _≟_)
-    using (Dec-conditional; BoolFun₁-decidable)
+    using (Bool-decidable)
   open import AOC.Lib.Composable
     using (id)
 
@@ -63,10 +62,13 @@ module AOC.Lib.String where
   Digit : (c : Char) → Type
   Digit c = primIsDigit c ≡ true
 
+  toDigit : (c : Char) → {{Digit c}} → ℕ
+  toDigit c = primCharToNat c ∸ 48
+
   tryToDigit : (c : Char) → Maybe ℕ
   tryToDigit c =
-    if c is Digit ??
-       then just (primCharToNat c ∸ 48)
+    if c is Digit
+       then just (toDigit c)  -- i can't believe this just works
        else nothing
 
 

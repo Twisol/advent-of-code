@@ -4,17 +4,17 @@ module AOC.Lib.Decidable where
   open import AOC.Lib.Equality
     using (_≡_; refl)
   open import AOC.Lib.Unit
-    using (⊤; by)
+    using (⊤; by; tt)
   open import AOC.Lib.Void
-    using (⊥)
+    using (⊥; ⊥-elim; ⊥-pair)
   open import AOC.Lib.Functions
-    using (Fun-composable)
+    using (Fun-composable; _⦊_)
   open import AOC.Lib.Composable
-    using (_;_)
-  open import AOC.Lib.Conditional
-    using (Conditional; conditional_choose:_; if_then_else_)
+    using (_;_; id)
   open import AOC.Lib.Bool
-    using (Bool; true; false; Bool-conditional)
+    using (Bool; true; false; _∧_)
+  open import AOC.Lib.Product
+    using (_×_; _,_; right; left; bimap)
 
   data Reflects (A : Type) : Bool → Type where
     present : ( p : A    ) → Reflects A true
@@ -26,16 +26,24 @@ module AOC.Lib.Decidable where
     field reason : Reflects P answer
   open Dec public using (answer; reason)
 
-  instance
-    Dec-conditional : {P : Type} → Conditional (Dec P)
-    Dec-conditional {P} = conditional by
-      choose: answer ; if_then_else_
+  map' : {A B : Type} → (A → B) → (B → A) → (b : Bool) → (Reflects A b → Reflects B b)
+  map' f g false (absent ¬p) = absent (g ; ¬p)
+  map' f g true  (present p) = present (f p)
 
   map : {A B : Type} → (A → B) → (B → A) → (Dec A → Dec B)
   answer (map f g x) = answer x
-  reason (map f g (_ because present p)) = present (f p)
-  reason (map f g (_ because absent ¬p)) = absent  (λ b → ¬p (g b))
+  reason (map f g (b because r)) = map' f g b r
 
+  pair : {A B : Type} → Dec A → Dec B → Dec (A × B)
+  answer (pair x y) = answer x ∧ answer y
+  reason (pair (true  because present p) (true  because present q)) =
+    present (p , q)
+  reason (pair (true  because present p) (false because absent ¬q)) =
+    absent (right ; ¬q)
+  reason (pair (false because absent ¬p) (true  because present q)) =
+    absent (left ; ¬p)
+  reason (pair (false because absent ¬p) (false because absent ¬q)) =
+    absent (bimap ¬p ¬q ; ⊥-pair)
 
   record Decidable₀ (P : Type) : Type where
     constructor decidable₀
@@ -73,20 +81,52 @@ module AOC.Lib.Decidable where
                       → Decidable₂ P
   decidable₂ by decide: d = decidable₂ d
 
+  decidable₂_answer:_reason:_ : ⊤ → {I₁ I₂ : Type} {P : I₁ → I₂ → Type}
+                              → (answer : I₁ → I₂ → Bool)
+                              → (reason : ∀ i₁ i₂ → Reflects (P i₁ i₂) (answer i₁ i₂))
+                              → Decidable₂ P
+  decidable₂ by answer: a reason: r = decidable₂ (λ i₁ i₂ → a i₁ i₂ because r i₁ i₂)
+
+  Decidable₁↓ : ∀{I} {P : I → Type} (_ : Decidable₁ P)
+              → ∀{i} → Decidable₀ (P i)
+  Decidable₁↓ ⟨P⟩ = decidable₀ by decide: decide₁ {{⟨P⟩}} _
+
+  Decidable₂↓ : ∀{I₁ I₂} {P : I₁ → I₂ → Type} (_ : Decidable₂ P)
+              → ∀{i₁} → Decidable₁ (P i₁)
+  Decidable₂↓ ⟨P⟩ = decidable₁ by decide: decide₂ {{⟨P⟩}} _
+
+  infix 18 _?? _?ᵇ _?ᵖ
+
+  _?? : (P : Type) {{_ : Decidable₀ P}} → Dec P
+  P ?? = decide₀
+
+  _?ᵇ : (P : Type) {{_ : Decidable₀ P}} → Bool
+  P ?ᵇ = Dec.answer (P ??)
+
+  _?ᵖ : (P : Type) {{_ : Decidable₀ P}} → Reflects P (P ?ᵇ)
+  P ?ᵖ = Dec.reason (P ??)
+
   module _ {I : Type} where
-    _is_?? : (i : I) → (P : I → Type) {{_ : Decidable₁ P}} → Dec (P i)
-    i is P ?? = decide₁ i
+    infix 19 _is_
+    _is_ : (i : I) → (P : I → Type) → Type
+    i is P = P i
 
-    _is_?ᵇ : I → (P : I → Type) {{_ : Decidable₁ P}} → Bool
-    i is P ?ᵇ = Dec.answer (i is P ??)
+    {- deprecated in favor of _is'_ and _?? -}
+    _is'_??' : (i : I) → (P : I → Type) {{_ : Decidable₁ P}} → Dec (P i)
+    i is' P ??' = decide₁ i
 
-    _is_?ᵖ : (i : I) → (P : I → Type) {{_ : Decidable₁ P}} → Reflects (P i) (i is P ?ᵇ)
-    i is P ?ᵖ = Dec.reason (i is P ??)
+    {- deprecated in favor of _is'_ and _?ᵇ -}
+    _is'_?ᵇ' : I → (P : I → Type) {{_ : Decidable₁ P}} → Bool
+    i is' P ?ᵇ' = Dec.answer (i is' P ??')
+
+    {- deprecated in favor of _is'_ and _?ᵖ -}
+    _is'_?ᵖ' : (i : I) → (P : I → Type) {{_ : Decidable₁ P}} → Reflects (P i) (i is' P ?ᵇ')
+    i is' P ?ᵖ' = Dec.reason (i is' P ??')
 
   DecidableEquality : Type → Type
   DecidableEquality A = Decidable₂ (_≡_ {_} {A})
 
-  module _ {A : Type} {{_ : DecidableEquality A}} where
+  module _ {A : Type} {{⟨A⟩ : DecidableEquality A}} where
     _≟_ : (x y : A) → Dec (x ≡ y)
     _≟_ = decide₂
 
@@ -97,22 +137,61 @@ module AOC.Lib.Decidable where
     x ≟ᵖ y = Dec.reason (x ≟ y)
 
     instance
-      ≡ʳ-decidable : {x : A} → Decidable₁ (x ≡_)
-      ≡ʳ-decidable {x} = decidable₁ by decide: (x ≟_)
+      ≡-decidable₁ˡ : {x : A} → Decidable₁ (x ≡_)
+      ≡-decidable₁ˡ {x} = decidable₁ by decide: (x ≟_)
 
-    instance
-      ≡ˡ-decidable : {x : A} → Decidable₁ (_≡ x)
-      ≡ˡ-decidable {x} = decidable₁ by decide: (_≟ x)
+      ≡-decidable₁ʳ : {y : A} → Decidable₁ (_≡ y)
+      ≡-decidable₁ʳ {y} = decidable₁ by decide: (_≟ y)
 
-  -- Every boolean function `A → Bool` yields a decidable predicate.
+      ≡-decidable₀ : {x y : A} → Decidable₀ (x ≡ y)
+      ≡-decidable₀ {x} {y} = decidable₀ by decide: (x ≟ y)
+
   instance
-    BoolFun₁-decidable : {A : Type} {f : A → Bool} → Decidable₁ (λ a → f a ≡ true)
-    BoolFun₁-decidable {A} {f} = decidable₁ by
-      answer: f
-      reason: r
-      where
-        r : (a : A) → Reflects (f a ≡ true) (f a)
-        r a with f a
-        ... | false = absent  λ()
-        ... | true  = present refl
+    Bool-decidable : DecidableEquality Bool
+    Bool-decidable = decidable₂ by
+      decide: λ
+        { false false → true  because present refl
+        ; false true  → false because absent  (λ ())
+        ; true  false → false because absent  (λ ())
+        ; true  true  → true  because present refl
+        }
 
+  instance
+    ×-decidable : ∀{A} {{_ : Decidable₀ A}}
+                → ∀{B} {{_ : Decidable₀ B}}
+                → Decidable₀ (A × B)
+    ×-decidable = decidable₀ by
+      decide: pair decide₀ decide₀
+
+  instance
+    ⊤-decidable : Decidable₀ ⊤
+    ⊤-decidable = decidable₀ by
+      decide: (true because present tt)
+
+  instance
+    ⊥-decidable : Decidable₀ ⊥
+    ⊥-decidable = decidable₀ by
+      decide: (false because absent (id _))
+
+  if_then_else_ : {A : Type}
+                → (Pred : Type) {{_ : Decidable₀ Pred}}
+                → (ift : {{Pred}} → A)
+                → (iff : {{Pred → ⊥}} → A)
+                → A
+  if Pred then ift else iff with Pred ??
+  ... | false because absent ¬p = iff {{¬p}}
+  ... | true  because present p = ift {{p}}
+
+  -- Bad instances -- these overlap often, causing instance search to fail.
+  -- Use Decidable₁↓ etc. to explicitly construct instances for specific predicates.
+{-
+  instance
+    Decidable₁-decidable : ∀{I} {P : I → Type} {{_ : Decidable₁ P}}
+                         → ∀{i} → Decidable₀ (P i)
+    Decidable₁-decidable = decidable₀ by decide: decide₁ _
+
+  instance
+    Decidable₂-decidable : ∀{I₁ I₂} {P : I₁ → I₂ → Type} {{_ : Decidable₂ P}}
+                         → ∀{i₁} → Decidable₁ (P i₁)
+    Decidable₂-decidable = decidable₁ by decide: decide₂ _
+-}

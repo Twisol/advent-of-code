@@ -15,3 +15,9 @@ module AOC.Lib.Product where
 
   Δ : {A : Type} → A → A × A
   Δ x = (x , x)
+
+  bimap : {A B C D : Type} → (A → C) → (B → D) → ((A × B) → (C × D))
+  bimap f g (a , b) = (f a , g b)
+
+  bimap' : {A B C D : Type} → ((A → C) × (B → D)) → ((A × B) → (C × D))
+  bimap' (f , g) = bimap f g
